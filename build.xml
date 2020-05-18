@@ -1,0 +1,140 @@
+build.xml
+<project name="hessian demos" default="compile" basedir=".">
+  <property name="modules" location="${basedir}/modules"/>
+  <property name="ext" location="${basedir}/ext"/>
+  <property name="install" location="${basedir}/"/>
+
+  <property name="build" value="${basedir}/WEB-INF/classes"/>
+  <property name="lib" value="${basedir}/WEB-INF/lib"/>
+  <property name="download" value="${basedir}/download"/>
+
+  <target name="clean">
+    <delete dir="${build}"/>
+    <delete dir="${download}"/>
+    <delete>
+      <fileset dir=".">
+        <include name="*.jar"/>
+        <include name="*.swf"/>
+      </fileset>
+    </delete>
+  </target>
+
+  <target name="compile" depends="server-war, source-jar"/>
+
+  <target name="javafx-build">
+    <mkdir dir="${build}"/>
+
+    <copy todir="${build}">
+      <fileset dir="${basedir}/src">
+        <include name="**/*.fx"/>
+        <include name="**/*.png"/>
+      </fileset>
+    </copy>
+
+    <javac srcdir="${basedir}/src" destdir="${build}"
+           fork="true" source="1.5" target="1.5" excludes="**/.svn/**">
+      <classpath>
+        <dirset dir="${basedir}/WEB-INF">
+          <include name="*/classes"/>
+        </dirset>
+        <fileset dir="${basedir}/ext">
+          <include name="**/*.jar"/>
+        </fileset>
+        <fileset dir="${basedir}/WEB-INF/lib">
+          <include name="**/*.jar"/>
+        </fileset>
+      </classpath>
+    </javac>
+
+  </target>
+
+  <target name="javafx-jar" depends="javafx-build">
+    <jar jarfile="${basedir}/words.jar" basedir="${build}" compress="true">
+      <exclude name="**/WordServiceImpl.class"/>
+    </jar>
+
+    <signjar jar="${basedir}/words.jar" 
+             alias="jfx" 
+             keystore="${basedir}/jfx.keystore"
+             storepass="storePassword"
+             keypass="keyPassword"/>
+
+    <copy todir="${basedir}">
+      <fileset dir="${lib}">
+        <include name="hessian-3.1.1.jar"/>
+        <include name="javafxrt.jar"/>
+        <include name="swing-layout.jar"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <!--
+    The Adobe Flex SDK can be downloaded from: 
+
+      http://www.adobe.com/products/flex/downloads/
+
+    The Ant tasks for Flex can be downloaded from:
+
+      http://labs.adobe.com/wiki/index.php/Flex_Ant_Tasks
+
+    Unzip the SDK in ${user.home}/flash and the Ant tasks in
+    ${user.home}/flash/flexTasks
+   -->
+  <taskdef resource="flexTasks.tasks" 
+           classpath="${user.home}/flash/flexTasks/lib/flexTasks.jar" />
+  <property name="FLEX_HOME" value="${user.home}/flash"/>
+
+  <target name="flash">
+    <mxmlc file="./flash/src/Words.mxml" output="Words.swf">
+      <source-path path-element="./flash/src"/>
+      <compiler.library-path dir="./flash/lib" append="true">
+        <include name="hessian.swc"/>
+      </compiler.library-path>
+    </mxmlc>
+  </target>
+
+  <target name="server-war" depends="javafx-jar, flash">
+    <mkdir dir="${download}"/>
+
+    <war destfile="${download}/HessianRIADemo.war" basedir="${basedir}"
+         compress="true" webxml="${basedir}/web.xml">
+
+      <lib dir="${basedir}">
+        <include name="hessian-3.1.1.jar"/>
+      </lib>
+
+      <classes dir="${build}">
+        <exclude name="**/WordClient.class"/>
+      </classes>
+
+      <exclude name="**/ext/**"/>
+      <exclude name="**/src/**"/>
+      <exclude name="**/WEB-INF/**"/>
+      <exclude name="**/*.fx"/>
+
+      <include name="**/*.jar"/>
+      <include name="**/*.jnlp"/>
+
+      <include name="**/*.swf"/>
+    </war>
+  </target>
+
+  <target name="source-jar">
+    <mkdir dir="${download}"/>
+
+    <jar jarfile="${download}/HessianRIADemoSource.jar" 
+         basedir="${basedir}"
+         compress="true">
+      <exclude name="**/WEB-INF/web.xml"/>
+      <exclude name="**/tmp/**"/>
+      <exclude name="**/css/**"/>
+      <exclude name="**/classes/**"/>
+      <exclude name="**/work/**"/>
+      <exclude name="**/download/**"/>
+      <exclude name="**/xsl/**"/>
+      <exclude name="**/*.swp"/>
+      <exclude name="${basedir}/*.jar"/>
+    </jar>
+  </target>
+
+</project>
